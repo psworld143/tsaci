@@ -1,0 +1,149 @@
+================================================================================
+TSACI - HOW TO RUN THE APPLICATION
+================================================================================
+
+✅ BACKEND IS ALREADY RUNNING (XAMPP Apache + MySQL)
+
+================================================================================
+OPTION 1: RUN ON MOBILE (iOS/Android) - RECOMMENDED
+================================================================================
+
+Mobile apps don't have CORS issues and work perfectly!
+
+For iOS Simulator:
+  flutter run
+
+For Android Emulator:
+  flutter run
+
+For Physical Device:
+  flutter run
+
+Note: Make sure the device can reach your computer's IP address
+Update API URL in lib/core/constants/api_constants.dart if needed:
+  - For real device: Use your computer's local IP (e.g., http://192.168.1.100/tsaci/backend/api)
+  - For simulator/emulator: Use http://127.0.0.1/tsaci/backend/api
+
+================================================================================
+OPTION 2: RUN ON WEB (Chrome with disabled security)
+================================================================================
+
+Flutter Web has CORS restrictions. To run in development:
+
+Method A - Use the provided script:
+  ./run_web.sh
+
+Method B - Manual command:
+  flutter run -d chrome --web-browser-flag "--disable-web-security" --web-browser-flag "--user-data-dir=/tmp/flutter-chrome"
+
+⚠️  WARNING: Only use this in development! Never browse other sites with this Chrome instance.
+
+================================================================================
+OPTION 3: RUN ON DESKTOP (macOS/Windows/Linux)
+================================================================================
+
+Desktop apps work perfectly without CORS issues!
+
+For macOS:
+  flutter run -d macos
+
+For Windows:
+  flutter run -d windows
+
+For Linux:
+  flutter run -d linux
+
+================================================================================
+DEFAULT LOGIN CREDENTIALS
+================================================================================
+
+Admin Account:
+  Email: admin@tsaci.com
+  Password: admin123
+
+Supervisor Account:
+  Email: supervisor@tsaci.com
+  Password: supervisor123
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Issue: "Failed to fetch" or "Network error"
+Solution:
+  1. Ensure XAMPP Apache is running
+  2. Test backend: curl http://127.0.0.1/tsaci/backend/api/products
+  3. For Web: Use ./run_web.sh or run with --disable-web-security
+  4. For Mobile: Use physical device or update API URL to computer's IP
+
+Issue: 404 Not Found
+Solution:
+  1. Check .htaccess exists in backend/
+  2. Enable mod_rewrite in Apache
+  3. Verify URL is correct
+
+Issue: Database connection error
+Solution:
+  1. Start MySQL in XAMPP
+  2. Check database exists: mysql -u root -e "SHOW DATABASES LIKE 'tsaci_db';"
+  3. Import schema if needed: mysql -u root tsaci_db < backend/database/schema.sql
+
+================================================================================
+RECOMMENDED SETUP FOR DEVELOPMENT
+================================================================================
+
+Best Experience:
+  1. Mobile: flutter run (iOS/Android)
+     ✅ No CORS issues
+     ✅ Native performance
+     ✅ Touch optimized
+
+  2. Desktop: flutter run -d macos (or windows/linux)
+     ✅ No CORS issues
+     ✅ Large screen
+     ✅ Fast development
+
+  3. Web: ./run_web.sh
+     ⚠️  Needs security disabled
+     ✅ Browser-based
+     ✅ Cross-platform
+
+================================================================================
+CHECKING BACKEND STATUS
+================================================================================
+
+Test backend is running:
+  cd backend
+  php test_api.php
+
+View backend logs:
+  php backend/view_logs.php
+
+Check API endpoint:
+  curl http://127.0.0.1/tsaci/backend/api/products
+
+================================================================================
+CONSOLE LOGGING
+================================================================================
+
+Both backend and frontend now have unified logging!
+
+Backend Logs:
+  - Location: backend/logs/tsaci.log
+  - View: php backend/view_logs.php
+
+Frontend Logs:
+  - Printed to Flutter console
+  - Shows all API requests/responses
+  - Shows authentication attempts
+  - Shows sync operations
+
+================================================================================
+
+🎯 RECOMMENDED: Run on Mobile or Desktop for best experience!
+
+For quick testing on web, use:
+  ./run_web.sh
+
+================================================================================
+

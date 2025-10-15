@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSACI API - CORS Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2D6A4F;
+        }
+        button {
+            background: #2D6A4F;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #40916C;
+        }
+        .response {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 TSACI API - CORS Test</h1>
+        
+        <div class="info">
+            <strong>Testing CORS Configuration</strong><br>
+            This page tests Cross-Origin Resource Sharing (CORS) with the TSACI API.
+        </div>
+
+        <h2>Test API Endpoints</h2>
+        
+        <button onclick="testLogin()">Test Login (POST)</button>
+        <button onclick="testProducts()">Test Get Products (GET)</button>
+        <button onclick="testOptions()">Test Preflight (OPTIONS)</button>
+        <button onclick="clearResponse()">Clear Response</button>
+
+        <div id="response" class="response">
+            <p>Click a button to test CORS...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost/tsaci/backend/api';
+        let authToken = null;
+
+        function displayResponse(title, data, isError = false) {
+            const responseDiv = document.getElementById('response');
+            const className = isError ? 'error' : 'success';
+            responseDiv.innerHTML = `
+                <h3 class="${className}">${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+
+        function clearResponse() {
+            document.getElementById('response').innerHTML = '<p>Response cleared.</p>';
+        }
+
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@tsaci.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.data.token;
+                    displayResponse('✅ Login Successful', {
+                        ...data,
+                        note: 'Token saved for authenticated requests'
+                    });
+                } else {
+                    displayResponse('❌ Login Failed', data, true);
+                }
+            } catch (error) {
+                displayResponse('❌ CORS Error or Network Error', {
+                    error: error.message,
+                    note: 'This usually means CORS is not properly configured'
+                }, true);
+            }
+        }
+
+        async function testProducts() {
+            if (!authToken) {
+                displayResponse('⚠️ No Token', {
+                    message: 'Please login first to get an auth token'
+                }, true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/products`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResponse('✅ Products Retrieved Successfully', {
+                        ...data,
+                        productCount: data.data.length
+                    });
+                } else {
+                    displayResponse('❌ Failed to Get Products', data, true);
+                }
+            } catch (error) {
+                displayResponse('❌ CORS Error or Network Error', {
+                    error: error.message
+                }, true);
+            }
+        }
+
+        async function testOptions() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type, Authorization'
+                    }
+                });
+
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    if (key.toLowerCase().includes('access-control')) {
+                        headers[key] = value;
+                    }
+                });
+
+                displayResponse('✅ Preflight Request (OPTIONS) Successful', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    corsHeaders: headers
+                });
+            } catch (error) {
+                displayResponse('❌ Preflight Failed', {
+                    error: error.message
+                }, true);
+            }
+        }
+    </script>
+</body>
+</html>
+

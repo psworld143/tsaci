@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Serve Flutter Web Build
+RewriteCond %{REQUEST_URI} !^/tsaci/backend
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ build/web/$1 [L]
+
+# Redirect root to Flutter app
+DirectoryIndex build/web/index.html
+

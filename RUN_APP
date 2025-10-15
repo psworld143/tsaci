@@ -1,0 +1,83 @@
+================================================================================
+HOW TO RUN TSACI - MOBILE APP
+================================================================================
+
+TSACI is a Flutter mobile application. Run it using Flutter's mobile emulator.
+
+================================================================================
+STEP 1: START BACKEND (XAMPP)
+================================================================================
+
+Ensure Apache and MySQL are running in XAMPP Control Panel
+
+================================================================================
+STEP 2: RUN FLUTTER APP
+================================================================================
+
+Open terminal and run:
+
+  flutter run
+
+Then select your device:
+  [1] iPhone 15 Pro (mobile)
+  [2] Chrome (chrome)
+  [3] macOS (desktop)
+
+For Chrome (mobile emulation):
+  - Select option with "chrome" (not web browser mode)
+  - App runs as mobile app in Chrome window
+  - Responsive mobile UI
+  - Full API connectivity
+
+For iOS Simulator:
+  - Select iPhone option
+  - Native iOS experience
+
+For Android Emulator:
+  - Start Android emulator first
+  - Select Android device
+
+================================================================================
+DEFAULT CREDENTIALS
+================================================================================
+
+Admin:
+  Email: admin@tsaci.com
+  Password: admin123
+
+Supervisor:
+  Email: supervisor@tsaci.com
+  Password: supervisor123
+
+================================================================================
+API ENDPOINT
+================================================================================
+
+Backend: http://127.0.0.1/tsaci/backend/api
+
+All endpoints use this base URL.
+No CORS issues when running as mobile app!
+
+================================================================================
+CONSOLE LOGGING
+================================================================================
+
+All API requests, responses, and errors are logged to console:
+  - API requests (method, URL, body)
+  - API responses (status, data)
+  - Authentication attempts
+  - Offline sync operations
+  - Errors with details
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If connection fails:
+  1. Check XAMPP Apache is running
+  2. Test backend: curl http://127.0.0.1/tsaci/backend/api/products
+  3. Verify database is running
+  4. Check backend/logs/tsaci.log for errors
+
+================================================================================
+
