@@ -3,11 +3,8 @@
  * JWT Authentication Middleware
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../helpers/simple_jwt.php';
 require_once __DIR__ . '/../helpers/logger.php';
-
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 
 class JWTAuth {
     private static $secret_key = "TSACI_SECRET_KEY_2025_SECURE";
@@ -34,7 +31,7 @@ class JWTAuth {
             ]
         ];
 
-        return JWT::encode($payload, self::$secret_key, self::$algorithm);
+        return SimpleJWT::encode($payload);
     }
 
     /**
@@ -56,8 +53,8 @@ class JWTAuth {
         $token = str_replace('Bearer ', '', $authHeader);
 
         try {
-            $decoded = JWT::decode($token, new Key(self::$secret_key, self::$algorithm));
-            return $decoded->data;
+            $decoded = SimpleJWT::decode($token);
+            return (object) $decoded['data'];
         } catch (Exception $e) {
             Logger::error("JWT verification failed: " . $e->getMessage(), [
                 'endpoint' => $_SERVER['REQUEST_URI'] ?? 'unknown',

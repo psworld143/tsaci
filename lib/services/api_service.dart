@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../models/app_error_model.dart';
 import '../utils/app_logger.dart';
@@ -7,9 +8,13 @@ import 'storage_service.dart';
 class ApiService {
   static final Dio _dio = Dio(
     BaseOptions(
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
+      validateStatus: (status) {
+        return status != null && status < 500;
+      },
     ),
   );
 
@@ -102,11 +107,30 @@ class ApiService {
   /// Handle API response
   static Map<String, dynamic> _handleResponse(Response response, String url) {
     final data = response.data;
+    
+    print('[ApiService] Response status: ${response.statusCode}');
+    print('[ApiService] Response data type: ${data.runtimeType}');
+    print('[ApiService] Response data: $data');
 
     if (response.statusCode! >= 200 && response.statusCode! < 300) {
       // Log successful response
       AppLogger.apiResponse(url, response.statusCode!, data);
-      return data is Map<String, dynamic> ? data : {};
+      
+      // Handle different response data types
+      if (data is Map<String, dynamic>) {
+        return data;
+      } else if (data is String) {
+        try {
+          final parsed = jsonDecode(data);
+          return parsed is Map<String, dynamic> ? parsed : {};
+        } catch (e) {
+          print('[ApiService] Failed to parse JSON: $e');
+          return {};
+        }
+      } else {
+        print('[ApiService] Unexpected response type: ${data.runtimeType}');
+        return {};
+      }
     } else {
       // Log error response
       AppLogger.apiError(url, data['message'] ?? 'Request failed', {
