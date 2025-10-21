@@ -8,9 +8,7 @@ class ProductAdminService {
     try {
       AppLogger.info('Loading all products');
 
-      final response = await ApiService.get(
-        '${ApiConstants.baseUrl}/products/getAll',
-      );
+      final response = await ApiService.get(ApiConstants.products);
 
       if (response['success'] == true && response['data'] != null) {
         final List<dynamic> productsJson = response['data'];
@@ -40,10 +38,12 @@ class ProductAdminService {
     try {
       AppLogger.info('Creating product', {'name': name});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/products/create',
-        {'name': name, 'category': category, 'price': price, 'unit': unit},
-      );
+      final response = await ApiService.post(ApiConstants.products, {
+        'name': name,
+        'category': category,
+        'price': price,
+        'unit': unit,
+      });
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to create product');
@@ -66,8 +66,8 @@ class ProductAdminService {
     try {
       AppLogger.info('Updating product', {'product_id': productId});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/products/update/$productId',
+      final response = await ApiService.put(
+        ApiConstants.productsById(productId),
         {'name': name, 'category': category, 'price': price, 'unit': unit},
       );
 
@@ -86,9 +86,8 @@ class ProductAdminService {
     try {
       AppLogger.info('Deleting product', {'product_id': productId});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/products/delete/$productId',
-        {},
+      final response = await ApiService.delete(
+        ApiConstants.productsById(productId),
       );
 
       if (response['success'] != true) {

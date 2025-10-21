@@ -9,7 +9,7 @@ class SalesService {
       AppLogger.info('Loading all sales');
 
       final response = await ApiService.get(
-        '${ApiConstants.baseUrl}/sales/getAll?limit=$limit',
+        '${ApiConstants.sales}?limit=$limit',
       );
 
       if (response['success'] == true && response['data'] != null) {
@@ -44,15 +44,14 @@ class SalesService {
         'quantity': quantity,
       });
 
-      final response =
-          await ApiService.post('${ApiConstants.baseUrl}/sales/create', {
-            'customer_id': customerId,
-            'product_id': productId,
-            'quantity': quantity,
-            'unit_price': unitPrice,
-            'status': status,
-            'date': date,
-          });
+      final response = await ApiService.post(ApiConstants.sales, {
+        'customer_id': customerId,
+        'product_id': productId,
+        'quantity': quantity,
+        'unit_price': unitPrice,
+        'status': status,
+        'date': date,
+      });
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to create sale');
@@ -77,17 +76,14 @@ class SalesService {
     try {
       AppLogger.info('Updating sale', {'sale_id': saleId});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/sales/update/$saleId',
-        {
-          'customer_id': customerId,
-          'product_id': productId,
-          'quantity': quantity,
-          'unit_price': unitPrice,
-          'status': status,
-          'date': date,
-        },
-      );
+      final response = await ApiService.put(ApiConstants.salesById(saleId), {
+        'customer_id': customerId,
+        'product_id': productId,
+        'quantity': quantity,
+        'unit_price': unitPrice,
+        'status': status,
+        'date': date,
+      });
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to update sale');
@@ -107,10 +103,9 @@ class SalesService {
         'status': status,
       });
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/sales/updateStatus/$saleId',
-        {'status': status},
-      );
+      final response = await ApiService.put(ApiConstants.salesById(saleId), {
+        'status': status,
+      });
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to update sale status');
@@ -127,10 +122,7 @@ class SalesService {
     try {
       AppLogger.info('Deleting sale', {'sale_id': saleId});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/sales/delete/$saleId',
-        {},
-      );
+      final response = await ApiService.delete(ApiConstants.salesById(saleId));
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to delete sale');

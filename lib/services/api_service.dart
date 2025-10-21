@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../models/app_error_model.dart';
 import '../utils/app_logger.dart';
 import 'storage_service.dart';
 
@@ -31,7 +32,8 @@ class ApiService {
       return _handleResponse(response, url);
     } catch (e) {
       AppLogger.apiError(url, 'Network error: $e');
-      throw Exception('Network error: $e');
+      final appError = AppError.fromException(e);
+      throw Exception(appError.message);
     }
   }
 
@@ -52,7 +54,8 @@ class ApiService {
       return _handleResponse(response, url);
     } catch (e) {
       AppLogger.apiError(url, 'Network error: $e');
-      throw Exception('Network error: $e');
+      final appError = AppError.fromException(e);
+      throw Exception(appError.message);
     }
   }
 
@@ -73,7 +76,8 @@ class ApiService {
       return _handleResponse(response, url);
     } catch (e) {
       AppLogger.apiError(url, 'Network error: $e');
-      throw Exception('Network error: $e');
+      final appError = AppError.fromException(e);
+      throw Exception(appError.message);
     }
   }
 
@@ -90,7 +94,8 @@ class ApiService {
       return _handleResponse(response, url);
     } catch (e) {
       AppLogger.apiError(url, 'Network error: $e');
-      throw Exception('Network error: $e');
+      final appError = AppError.fromException(e);
+      throw Exception(appError.message);
     }
   }
 

@@ -3,6 +3,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_styles.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/admin_layout.dart';
+import '../../models/app_error_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/storage_service.dart';
 import '../manager/manager_home_screen.dart';
@@ -108,11 +109,13 @@ class _LoginScreenState extends State<LoginScreen> {
       print('❌ LOGIN ERROR: $e');
       print('Error type: ${e.runtimeType}');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: AppColors.error,
-          ),
+        // Parse error and show beautiful error dialog
+        final appError = AppError.fromException(e);
+
+        ErrorDialog.show(
+          context,
+          error: appError,
+          onRetry: appError.isRetryable ? _handleLogin : null,
         );
       }
     } finally {

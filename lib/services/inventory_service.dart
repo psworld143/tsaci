@@ -8,9 +8,7 @@ class InventoryService {
     try {
       AppLogger.info('Loading all inventory');
 
-      final response = await ApiService.get(
-        '${ApiConstants.baseUrl}/inventory/getAll',
-      );
+      final response = await ApiService.get(ApiConstants.inventory);
 
       if (response['success'] == true && response['data'] != null) {
         final List<dynamic> inventoryJson = response['data'];
@@ -35,9 +33,7 @@ class InventoryService {
     try {
       AppLogger.info('Loading low stock items');
 
-      final response = await ApiService.get(
-        '${ApiConstants.baseUrl}/inventory/getLowStock',
-      );
+      final response = await ApiService.get(ApiConstants.inventoryLowStock);
 
       if (response['success'] == true && response['data'] != null) {
         final List<dynamic> inventoryJson = response['data'];
@@ -65,13 +61,12 @@ class InventoryService {
     try {
       AppLogger.info('Creating inventory', {'product_id': productId});
 
-      final response =
-          await ApiService.post('${ApiConstants.baseUrl}/inventory/create', {
-            'product_id': productId,
-            'quantity': quantity,
-            'location': location,
-            'minimum_threshold': minimumThreshold,
-          });
+      final response = await ApiService.post(ApiConstants.inventory, {
+        'product_id': productId,
+        'quantity': quantity,
+        'location': location,
+        'minimum_threshold': minimumThreshold,
+      });
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to create inventory');
@@ -93,14 +88,12 @@ class InventoryService {
     try {
       AppLogger.info('Updating inventory', {'inventory_id': inventoryId});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/inventory/update/$inventoryId',
-        {
-          'quantity': quantity,
-          'location': location,
-          'minimum_threshold': minimumThreshold,
-        },
-      );
+      final response =
+          await ApiService.put('${ApiConstants.inventory}/$inventoryId', {
+            'quantity': quantity,
+            'location': location,
+            'minimum_threshold': minimumThreshold,
+          });
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to update inventory');
@@ -117,9 +110,8 @@ class InventoryService {
     try {
       AppLogger.info('Deleting inventory', {'inventory_id': inventoryId});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/inventory/delete/$inventoryId',
-        {},
+      final response = await ApiService.delete(
+        '${ApiConstants.inventory}/$inventoryId',
       );
 
       if (response['success'] != true) {

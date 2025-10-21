@@ -9,7 +9,7 @@ class ExpenseService {
       AppLogger.info('Loading all expenses');
 
       final response = await ApiService.get(
-        '${ApiConstants.baseUrl}/expenses/getAll?limit=$limit',
+        '${ApiConstants.expenses}?limit=$limit',
       );
 
       if (response['success'] == true && response['data'] != null) {
@@ -44,14 +44,13 @@ class ExpenseService {
         'amount': amount,
       });
 
-      final response =
-          await ApiService.post('${ApiConstants.baseUrl}/expenses/create', {
-            'category': category,
-            'amount': amount,
-            'date': date,
-            'description': description,
-            'department': department,
-          });
+      final response = await ApiService.post(ApiConstants.expenses, {
+        'category': category,
+        'amount': amount,
+        'date': date,
+        'description': description,
+        'department': department,
+      });
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to create expense');
@@ -75,16 +74,14 @@ class ExpenseService {
     try {
       AppLogger.info('Updating expense', {'expense_id': expenseId});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/expenses/update/$expenseId',
-        {
-          'category': category,
-          'amount': amount,
-          'date': date,
-          'description': description,
-          'department': department,
-        },
-      );
+      final response =
+          await ApiService.put(ApiConstants.expensesById(expenseId), {
+            'category': category,
+            'amount': amount,
+            'date': date,
+            'description': description,
+            'department': department,
+          });
 
       if (response['success'] != true) {
         throw Exception(response['message'] ?? 'Failed to update expense');
@@ -101,9 +98,8 @@ class ExpenseService {
     try {
       AppLogger.info('Deleting expense', {'expense_id': expenseId});
 
-      final response = await ApiService.post(
-        '${ApiConstants.baseUrl}/expenses/delete/$expenseId',
-        {},
+      final response = await ApiService.delete(
+        ApiConstants.expensesById(expenseId),
       );
 
       if (response['success'] != true) {

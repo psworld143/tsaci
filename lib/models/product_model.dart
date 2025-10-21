@@ -15,12 +15,26 @@ class ProductModel {
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
-      productId: int.parse(json['product_id'].toString()),
+      productId: _parseInt(json['product_id']),
       name: json['name'] ?? '',
       category: json['category'] ?? '',
-      price: double.parse(json['price'].toString()),
+      price: _parseDouble(json['price']),
       unit: json['unit'] ?? '',
     );
+  }
+
+  /// Safely parse integer values (handles both int and double from JSON)
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    return double.parse(value.toString()).toInt();
+  }
+
+  /// Safely parse double values
+  static double _parseDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    return double.parse(value.toString());
   }
 
   Map<String, dynamic> toJson() {

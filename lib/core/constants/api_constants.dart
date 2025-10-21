@@ -1,8 +1,47 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// API Configuration
 class ApiConstants {
-  // Base URL - Direct to backend router (index.php handles routing)
-  // Works with iOS, Android, macOS, Windows, Linux, Chrome
-  static const String baseUrl = 'http://localhost/tsaci/backend';
+  // Base URL - Platform-aware configuration
+  // Automatically detects the platform and uses the correct URL
+  static String get baseUrl {
+    // For web builds
+    if (kIsWeb) {
+      return 'http://localhost/tsaci/backend';
+    }
+
+    // For mobile and desktop platforms
+    if (!kIsWeb) {
+      // Android emulator uses 10.0.2.2 to access host machine's localhost
+      if (Platform.isAndroid) {
+        return 'http://10.0.2.2/tsaci/backend';
+      }
+
+      // iOS simulator, macOS, Windows, Linux can use localhost
+      // For real devices, set your machine's IP in environment or use localhost for desktop
+      if (Platform.isIOS ||
+          Platform.isMacOS ||
+          Platform.isWindows ||
+          Platform.isLinux) {
+        // Option 1: Use localhost for desktop and iOS simulator
+        return 'http://localhost/tsaci/backend';
+
+        // Option 2: For real iOS/Android devices, uncomment and set your machine's IP:
+        // return 'http://192.168.1.XXX/tsaci/backend';  // Replace XXX with your IP
+      }
+    }
+
+    // Fallback
+    return 'http://localhost/tsaci/backend';
+  }
+
+  // Alternative: Environment-based configuration
+  // Uncomment to use custom URL from environment
+  // static String get baseUrl => const String.fromEnvironment(
+  //   'API_BASE_URL',
+  //   defaultValue: 'http://localhost/tsaci/backend',
+  // );
 
   // Auth Endpoints
   static String get login => '$baseUrl/auth/login';

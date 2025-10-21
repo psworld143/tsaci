@@ -19,9 +19,9 @@ class ExpenseModel {
 
   factory ExpenseModel.fromJson(Map<String, dynamic> json) {
     return ExpenseModel(
-      expenseId: int.parse(json['expense_id'].toString()),
+      expenseId: _parseInt(json['expense_id']),
       category: json['category'] ?? '',
-      amount: double.parse(json['amount'].toString()),
+      amount: _parseDouble(json['amount']),
       date: DateTime.parse(json['date']),
       description: json['description'],
       department: json['department'],
@@ -29,6 +29,20 @@ class ExpenseModel {
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
     );
+  }
+
+  /// Safely parse integer values (handles both int and double from JSON)
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    return double.parse(value.toString()).toInt();
+  }
+
+  /// Safely parse double values
+  static double _parseDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    return double.parse(value.toString());
   }
 
   Map<String, dynamic> toJson() {

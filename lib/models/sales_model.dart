@@ -27,20 +27,34 @@ class SalesModel {
 
   factory SalesModel.fromJson(Map<String, dynamic> json) {
     return SalesModel(
-      saleId: int.parse(json['sale_id'].toString()),
-      customerId: int.parse(json['customer_id'].toString()),
+      saleId: _parseInt(json['sale_id']),
+      customerId: _parseInt(json['customer_id']),
       customerName: json['customer_name'] ?? '',
-      productId: int.parse(json['product_id'].toString()),
+      productId: _parseInt(json['product_id']),
       productName: json['product_name'] ?? json['name'] ?? '',
-      quantity: int.parse(json['quantity'].toString()),
-      unitPrice: double.parse(json['unit_price'].toString()),
-      totalAmount: double.parse(json['total_amount'].toString()),
+      quantity: _parseInt(json['quantity']),
+      unitPrice: _parseDouble(json['unit_price']),
+      totalAmount: _parseDouble(json['total_amount']),
       status: json['status'] ?? 'pending',
       date: DateTime.parse(json['date']),
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
     );
+  }
+
+  /// Safely parse integer values (handles both int and double from JSON)
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    return double.parse(value.toString()).toInt();
+  }
+
+  /// Safely parse double values
+  static double _parseDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    return double.parse(value.toString());
   }
 
   Map<String, dynamic> toJson() {

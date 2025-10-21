@@ -184,35 +184,52 @@ function delete($id) {
     }
 }
 
-// Handle sales routes
-if (isset($action)) {
-    switch ($action) {
-        case 'getAll':
+// Handle sales routes based on HTTP method
+switch ($method) {
+    case 'GET':
+        if ($action === null) {
+            // GET /sales - get all sales
             getAll();
-            break;
-        case 'getById':
-            if (isset($param)) getById($param);
-            else Response::error("Sale ID is required");
-            break;
-        case 'create':
-            create();
-            break;
-        case 'filterByDate':
+        } elseif (is_numeric($action)) {
+            // GET /sales/{id} - get sale by ID
+            getById($action);
+        } elseif ($action === 'filter' && isset($_GET['start_date'])) {
+            // GET /sales/filter?start_date=X&end_date=Y - filter by date
             filterByDate();
-            break;
-        case 'update':
-            if (isset($param)) update($param);
-            else Response::error("Sale ID is required");
-            break;
-        case 'updateStatus':
-            if (isset($param)) updateStatus($param);
-            else Response::error("Sale ID is required");
-            break;
-        case 'delete':
-            if (isset($param)) delete($param);
-            else Response::error("Sale ID is required");
-            break;
-        default:
+        } else {
             Response::error("Invalid action");
-    }
+        }
+        break;
+        
+    case 'POST':
+        if ($action === null) {
+            // POST /sales - create new sale
+            create();
+        } else {
+            Response::error("Invalid action");
+        }
+        break;
+        
+    case 'PUT':
+    case 'PATCH':
+        if (is_numeric($action)) {
+            // PUT /sales/{id} - update sale
+            update($action);
+        } else {
+            Response::error("Sale ID is required");
+        }
+        break;
+        
+    case 'DELETE':
+        if (is_numeric($action)) {
+            // DELETE /sales/{id} - delete sale
+            delete($action);
+        } else {
+            Response::error("Sale ID is required");
+        }
+        break;
+        
+    default:
+        Response::error("Method not allowed", 405);
+        break;
 }

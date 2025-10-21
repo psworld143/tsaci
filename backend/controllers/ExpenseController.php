@@ -151,34 +151,59 @@ function delete($id) {
     }
 }
 
-// Handle expense routes
-if (isset($action)) {
-    switch ($action) {
-        case 'getAll':
+// Handle expense routes based on HTTP method
+switch ($method) {
+    case 'GET':
+        if ($action === null) {
+            // GET /expenses - get all expenses
             getAll();
-            break;
-        case 'getById':
-            if (isset($param)) getById($param);
-            else Response::error("Expense ID is required");
-            break;
-        case 'create':
-            create();
-            break;
-        case 'filterByDate':
-            filterByDate();
-            break;
-        case 'filterByCategory':
-            filterByCategory();
-            break;
-        case 'update':
-            if (isset($param)) update($param);
-            else Response::error("Expense ID is required");
-            break;
-        case 'delete':
-            if (isset($param)) delete($param);
-            else Response::error("Expense ID is required");
-            break;
-        default:
+        } elseif (is_numeric($action)) {
+            // GET /expenses/{id} - get expense by ID
+            getById($action);
+        } elseif ($action === 'filter') {
+            // GET /expenses/filter?start_date=X&end_date=Y - filter by date
+            if (isset($_GET['start_date'])) {
+                filterByDate();
+            } elseif (isset($_GET['category'])) {
+                // GET /expenses/filter?category=X - filter by category
+                filterByCategory();
+            } else {
+                Response::error("Invalid filter parameters");
+            }
+        } else {
             Response::error("Invalid action");
-    }
+        }
+        break;
+        
+    case 'POST':
+        if ($action === null) {
+            // POST /expenses - create new expense
+            create();
+        } else {
+            Response::error("Invalid action");
+        }
+        break;
+        
+    case 'PUT':
+    case 'PATCH':
+        if (is_numeric($action)) {
+            // PUT /expenses/{id} - update expense
+            update($action);
+        } else {
+            Response::error("Expense ID is required");
+        }
+        break;
+        
+    case 'DELETE':
+        if (is_numeric($action)) {
+            // DELETE /expenses/{id} - delete expense
+            delete($action);
+        } else {
+            Response::error("Expense ID is required");
+        }
+        break;
+        
+    default:
+        Response::error("Method not allowed", 405);
+        break;
 }

@@ -117,31 +117,55 @@ function delete($id) {
     }
 }
 
-// Handle inventory routes
-if (isset($action)) {
-    switch ($action) {
-        case 'getAll':
+// Handle inventory routes based on HTTP method
+switch ($method) {
+    case 'GET':
+        if ($action === null) {
+            // GET /inventory - get all inventory
             getAll();
-            break;
-        case 'getByProduct':
-            if (isset($param)) getByProduct($param);
-            else Response::error("Product ID is required");
-            break;
-        case 'getLowStock':
+        } elseif (is_numeric($action)) {
+            // GET /inventory/{id} - get inventory by ID (not implemented in model)
+            Response::error("Not implemented");
+        } elseif ($action === 'product' && is_numeric($param)) {
+            // GET /inventory/product/{id} - get by product
+            getByProduct($param);
+        } elseif ($action === 'low-stock') {
+            // GET /inventory/low-stock - get low stock items
             getLowStock();
-            break;
-        case 'create':
-            create();
-            break;
-        case 'update':
-            if (isset($param)) update($param);
-            else Response::error("Inventory ID is required");
-            break;
-        case 'delete':
-            if (isset($param)) delete($param);
-            else Response::error("Inventory ID is required");
-            break;
-        default:
+        } else {
             Response::error("Invalid action");
-    }
+        }
+        break;
+        
+    case 'POST':
+        if ($action === null) {
+            // POST /inventory - create new inventory
+            create();
+        } else {
+            Response::error("Invalid action");
+        }
+        break;
+        
+    case 'PUT':
+    case 'PATCH':
+        if (is_numeric($action)) {
+            // PUT /inventory/{id} - update inventory
+            update($action);
+        } else {
+            Response::error("Inventory ID is required");
+        }
+        break;
+        
+    case 'DELETE':
+        if (is_numeric($action)) {
+            // DELETE /inventory/{id} - delete inventory
+            delete($action);
+        } else {
+            Response::error("Inventory ID is required");
+        }
+        break;
+        
+    default:
+        Response::error("Method not allowed", 405);
+        break;
 }
