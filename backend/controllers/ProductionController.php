@@ -170,34 +170,56 @@ function delete($id) {
     }
 }
 
-// Handle production routes
-if (isset($action)) {
-    switch ($action) {
-        case 'getAll':
+// Handle production routes based on HTTP method
+// $action and $param are provided by index.php
+switch ($method) {
+    case 'GET':
+        if ($action === null) {
+            // GET /production - Get all production logs
             getAll();
-            break;
-        case 'getById':
-            if (isset($param)) getById($param);
-            else Response::error("Production ID is required");
-            break;
-        case 'create':
-            create();
-            break;
-        case 'filterByDate':
+        } elseif (is_numeric($action)) {
+            // GET /production/{id} - Get by ID
+            getById($action);
+        } elseif ($action === 'filter' && $param === 'date') {
+            // GET /production/filter/date?start_date=X&end_date=Y
             filterByDate();
-            break;
-        case 'filterByProduct':
+        } elseif ($action === 'filter' && $param === 'product') {
+            // GET /production/filter/product?product_id=X
             filterByProduct();
-            break;
-        case 'update':
-            if (isset($param)) update($param);
-            else Response::error("Production ID is required");
-            break;
-        case 'delete':
-            if (isset($param)) delete($param);
-            else Response::error("Production ID is required");
-            break;
-        default:
+        } else {
             Response::error("Invalid action");
-    }
+        }
+        break;
+        
+    case 'POST':
+        if ($action === null) {
+            // POST /production - Create new production log
+            create();
+        } else {
+            Response::error("Invalid action");
+        }
+        break;
+        
+    case 'PUT':
+    case 'PATCH':
+        if (is_numeric($action)) {
+            // PUT /production/{id} - Update production log
+            update($action);
+        } else {
+            Response::error("Production ID is required");
+        }
+        break;
+        
+    case 'DELETE':
+        if (is_numeric($action)) {
+            // DELETE /production/{id} - Delete production log
+            delete($action);
+        } else {
+            Response::error("Production ID is required");
+        }
+        break;
+        
+    default:
+        Response::error("Method not allowed", 405);
+        break;
 }

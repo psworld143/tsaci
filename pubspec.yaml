@@ -65,6 +65,9 @@ dependencies:
   
   # Image picker for logo upload
   image_picker: ^1.1.2
+  
+  # Universal HTML for web exports
+  universal_html: ^2.2.4
 
 dev_dependencies:
   flutter_test:

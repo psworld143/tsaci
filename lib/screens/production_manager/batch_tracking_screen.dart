@@ -16,6 +16,7 @@ class BatchTrackingScreen extends StatefulWidget {
 
 class _BatchTrackingScreenState extends State<BatchTrackingScreen> {
   List<ProductionBatch> _batches = [];
+  List<ProductionBatch> _selectedBatches = [];
   bool _isLoading = true;
   String _filterStatus = 'all';
 
@@ -437,6 +438,92 @@ class _BatchTrackingScreenState extends State<BatchTrackingScreen> {
     );
   }
 
+  Future<void> _handleBulkDelete() async {
+    final confirm = await BulkActionsDialog.showDeleteConfirmation(
+      context,
+      count: _selectedBatches.length,
+    );
+
+    if (confirm == true) {
+      int successCount = 0;
+      int failedCount = 0;
+
+      for (var batch in _selectedBatches) {
+        try {
+          if (batch.batchId != null) {
+            await BatchService.deleteBatch(batch.batchId!);
+            successCount++;
+          }
+        } catch (e) {
+          failedCount++;
+        }
+      }
+
+      setState(() => _selectedBatches.clear());
+      _loadBatches();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Deleted $successCount batch${successCount > 1 ? 'es' : ''}' +
+                  (failedCount > 0 ? ', $failedCount failed' : ''),
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleBulkStatusUpdate() async {
+    final newStatus = await BulkActionsDialog.showStatusUpdateDialog(
+      context,
+      statusOptions: ['ongoing', 'on_hold', 'completed', 'cancelled'],
+    );
+
+    if (newStatus != null) {
+      int successCount = 0;
+
+      for (var batch in _selectedBatches) {
+        try {
+          if (batch.batchId != null) {
+            await BatchService.updateStatus(batch.batchId!, newStatus);
+            successCount++;
+          }
+        } catch (e) {
+          print('Failed to update batch ${batch.batchNumber}: $e');
+        }
+      }
+
+      setState(() => _selectedBatches.clear());
+      _loadBatches();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Updated $successCount batch${successCount > 1 ? 'es' : ''} to $newStatus',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
+  void _selectAllBatches() {
+    setState(() {
+      _selectedBatches = List.from(_filteredBatches);
+    });
+  }
+
+  void _deselectAllBatches() {
+    setState(() {
+      _selectedBatches.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -483,6 +570,19 @@ class _BatchTrackingScreenState extends State<BatchTrackingScreen> {
             ),
           ),
 
+          // Bulk Operations Bar
+          if (_selectedBatches.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(AppStyles.space4),
+              child: BulkOperationsWidget(
+                selectedCount: _selectedBatches.length,
+                onSelectAll: _selectAllBatches,
+                onDeselectAll: _deselectAllBatches,
+                onDelete: _handleBulkDelete,
+                onUpdateStatus: _handleBulkStatusUpdate,
+              ),
+            ),
+
           // Content
           Expanded(
             child: _isLoading
@@ -504,11 +604,25 @@ class _BatchTrackingScreenState extends State<BatchTrackingScreen> {
                       itemCount: _filteredBatches.length,
                       itemBuilder: (context, index) {
                         final batch = _filteredBatches[index];
+                        final isSelected = _selectedBatches.contains(batch);
+
                         return Padding(
                           padding: const EdgeInsets.only(
                             bottom: AppStyles.space4,
                           ),
-                          child: _buildBatchCard(batch),
+                          child: SelectableListTile(
+                            isSelected: isSelected,
+                            onChanged: (selected) {
+                              setState(() {
+                                if (selected == true) {
+                                  _selectedBatches.add(batch);
+                                } else {
+                                  _selectedBatches.remove(batch);
+                                }
+                              });
+                            },
+                            child: _buildBatchCard(batch),
+                          ),
                         );
                       },
                     ),

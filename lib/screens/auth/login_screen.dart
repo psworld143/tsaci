@@ -9,6 +9,9 @@ import '../../services/storage_service.dart';
 import '../manager/manager_home_screen.dart';
 import '../supervisor/supervisor_home_screen.dart';
 import '../production_manager/production_manager_layout.dart';
+import '../inventory_officer/inventory_officer_layout.dart';
+import '../qa_officer/qa_officer_layout.dart';
+import '../worker/worker_layout.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -68,16 +71,18 @@ class _LoginScreenState extends State<LoginScreen> {
             );
             break;
           case 'inventory_officer':
-            print('→ Routing to ManagerHomeScreen (Inventory Officer)');
-            homeScreen = const ManagerHomeScreen();
+            print('→ Routing to InventoryOfficerLayout');
+            homeScreen = const InventoryOfficerLayout(
+              initialRoute: '/inventory/dashboard',
+            );
             break;
           case 'qa_officer':
-            print('→ Routing to ManagerHomeScreen (QA Officer)');
-            homeScreen = const ManagerHomeScreen();
+            print('→ Routing to QAOfficerLayout');
+            homeScreen = const QAOfficerLayout(initialRoute: '/qa/dashboard');
             break;
           case 'worker':
-            print('→ Routing to SupervisorHomeScreen (Worker)');
-            homeScreen = const SupervisorHomeScreen();
+            print('→ Routing to WorkerLayout');
+            homeScreen = const WorkerLayout();
             break;
           // DEPRECATED: Legacy roles
           case 'manager': // redirects to production_manager

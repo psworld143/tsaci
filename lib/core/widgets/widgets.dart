@@ -13,3 +13,5 @@ export 'error_dialog.dart';
 export 'error_state_widget.dart';
 export 'network_error_screen.dart';
 export 'loading_overlay.dart';
+export 'bulk_operations_widget.dart';
+export 'advanced_search_widget.dart';

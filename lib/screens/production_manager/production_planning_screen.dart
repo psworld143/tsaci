@@ -7,9 +7,11 @@ import '../../utils/responsive.dart';
 import '../../models/production_batch_model.dart';
 import '../../models/product_model.dart';
 import '../../models/user_model.dart';
+import '../../models/batch_template_model.dart';
 import '../../services/batch_service.dart';
 import '../../services/product_service.dart';
 import '../../services/user_service.dart';
+import '../../services/batch_template_service.dart';
 
 class ProductionPlanningScreen extends StatefulWidget {
   const ProductionPlanningScreen({Key? key}) : super(key: key);
@@ -25,6 +27,7 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
   List<ProductModel> _products = [];
   List<UserModel> _supervisors = [];
   List<UserModel> _workers = [];
+  List<BatchTemplate> _templates = [];
   bool _isLoading = true;
 
   @override
@@ -61,10 +64,20 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
         // Users optional - can still view batches
       }
 
+      print('[ProductionPlanning] Loading templates...');
+      List<BatchTemplate> templates = [];
+      try {
+        templates = await BatchTemplateService.getAllTemplates();
+        print('[ProductionPlanning] Templates loaded: ${templates.length}');
+      } catch (e) {
+        print('[ProductionPlanning] Templates error (non-critical): $e');
+      }
+
       setState(() {
         _batches = batches
           ..sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
         _products = products;
+        _templates = templates;
         _supervisors = allUsers
             .where(
               (u) =>
@@ -85,6 +98,7 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
       print('[ProductionPlanning] Data loading complete');
       print('  - Batches: ${_batches.length}');
       print('  - Products: ${_products.length}');
+      print('  - Templates: ${_templates.length}');
       print('  - Supervisors: ${_supervisors.length}');
       print('  - Workers: ${_workers.length}');
     } catch (e) {
@@ -102,24 +116,131 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
     }
   }
 
-  Future<void> _showBatchDialog({ProductionBatch? batch}) async {
+  Future<void> _showTemplatesDialog() async {
+    if (_templates.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No templates available')));
+      return;
+    }
+
+    final selectedTemplate = await showDialog<BatchTemplate>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppStyles.radiusXl),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+          padding: const EdgeInsets.all(AppStyles.space6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Batch Templates', style: AppStyles.headingMd),
+              const SizedBox(height: AppStyles.space2),
+              Text(
+                'Select a template to create a batch quickly',
+                style: AppStyles.bodySm.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppStyles.space4),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _templates.length,
+                  itemBuilder: (context, index) {
+                    final template = _templates[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: AppStyles.space3),
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(AppStyles.space2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(
+                              AppStyles.radiusSm,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.bookmark,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        title: Text(
+                          template.templateName,
+                          style: AppStyles.labelMd,
+                        ),
+                        subtitle: Text(
+                          '${template.productName} - ${template.targetQuantity} ${template.unit}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete,
+                                color: AppColors.error,
+                              ),
+                              onPressed: () async {
+                                if (template.templateId != null) {
+                                  await BatchTemplateService.deleteTemplate(
+                                    template.templateId!,
+                                  );
+                                  Navigator.pop(context);
+                                  _loadData();
+                                }
+                              },
+                            ),
+                            const Icon(Icons.arrow_forward),
+                          ],
+                        ),
+                        onTap: () => Navigator.pop(context, template),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (selectedTemplate != null) {
+      _showBatchDialog(template: selectedTemplate);
+    }
+  }
+
+  Future<void> _showBatchDialog({
+    ProductionBatch? batch,
+    BatchTemplate? template,
+  }) async {
     final isEdit = batch != null;
+    final fromTemplate = template != null;
 
     // Controllers
     final batchNumberController = TextEditingController(
       text: batch?.batchNumber ?? '',
     );
     final quantityController = TextEditingController(
-      text: batch?.targetQuantity.toString() ?? '',
+      text:
+          (batch?.targetQuantity ?? template?.targetQuantity)?.toString() ?? '',
     );
-    final notesController = TextEditingController(text: batch?.notes ?? '');
+    final notesController = TextEditingController(
+      text: batch?.notes ?? template?.notes ?? '',
+    );
 
     // State
-    int? selectedProductId = batch?.productId;
+    int? selectedProductId = batch?.productId ?? template?.productId;
     DateTime selectedDate = batch?.scheduledDate ?? DateTime.now();
-    List<int> selectedSupervisorIds = List.from(batch?.supervisorIds ?? []);
-    List<int> selectedWorkerIds = List.from(batch?.workerIds ?? []);
+    List<int> selectedSupervisorIds = List.from(
+      batch?.supervisorIds ?? template?.supervisorIds ?? [],
+    );
+    List<int> selectedWorkerIds = List.from(
+      batch?.workerIds ?? template?.workerIds ?? [],
+    );
     bool isLoading = false;
+    bool showSaveTemplate = false;
 
     await showDialog(
       context: context,
@@ -172,7 +293,11 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                isEdit ? 'Edit Batch' : 'Create New Batch',
+                                isEdit
+                                    ? 'Edit Batch'
+                                    : fromTemplate
+                                    ? 'Create from Template'
+                                    : 'Create New Batch',
                                 style: AppStyles.headingMd.copyWith(
                                   color: Colors.white,
                                 ),
@@ -181,6 +306,8 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
                               Text(
                                 isEdit
                                     ? 'Update batch information'
+                                    : fromTemplate
+                                    ? 'Using template: ${template.templateName}'
                                     : 'Schedule a new production batch',
                                 style: AppStyles.bodySm.copyWith(
                                   color: Colors.white.withValues(alpha: 0.9),
@@ -519,6 +646,24 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
                             hint: 'Add any special instructions',
                             maxLines: 3,
                           ),
+
+                          // Save as Template (only when creating new batch)
+                          if (!isEdit && !fromTemplate) ...[
+                            const SizedBox(height: AppStyles.space4),
+                            CheckboxListTile(
+                              value: showSaveTemplate,
+                              onChanged: (value) {
+                                setDialogState(
+                                  () => showSaveTemplate = value ?? false,
+                                );
+                              },
+                              title: const Text('Save as template'),
+                              subtitle: const Text(
+                                'Reuse this configuration later',
+                              ),
+                              controlAffinity: ListTileControlAffinity.leading,
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -605,30 +750,9 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
                                     setDialogState(() => isLoading = true);
 
                                     try {
-                                      final product = _products.firstWhere(
-                                        (p) => p.productId == selectedProductId,
-                                      );
-
-                                      final supervisorNames = _supervisors
-                                          .where(
-                                            (s) => selectedSupervisorIds
-                                                .contains(s.userId),
-                                          )
-                                          .map((s) => s.name)
-                                          .toList();
-
-                                      final workerNames = _workers
-                                          .where(
-                                            (w) => selectedWorkerIds.contains(
-                                              w.userId,
-                                            ),
-                                          )
-                                          .map((w) => w.name)
-                                          .toList();
-
                                       // Prepare batch data
                                       final batchData = {
-                                        'product_id': selectedProductId!,
+                                        'product_id': selectedProductId,
                                         'target_quantity': quantity,
                                         'scheduled_date': selectedDate
                                             .toIso8601String()
@@ -657,6 +781,62 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
 
                                       if (mounted) {
                                         if (result['success'] == true) {
+                                          // Save as template if requested
+                                          if (showSaveTemplate &&
+                                              selectedProductId != null &&
+                                              quantity != null) {
+                                            final templateName =
+                                                await _showSaveTemplateDialog();
+                                            if (templateName != null) {
+                                              final productIdValue =
+                                                  selectedProductId!;
+                                              final quantityValue = quantity!;
+                                              final product = _products
+                                                  .firstWhere(
+                                                    (p) =>
+                                                        p.productId ==
+                                                        productIdValue,
+                                                  );
+
+                                              await BatchTemplateService.saveTemplate(
+                                                BatchTemplate(
+                                                  templateName: templateName,
+                                                  productId: productIdValue,
+                                                  productName: product.name,
+                                                  targetQuantity: quantityValue,
+                                                  unit: product.unit,
+                                                  supervisorIds:
+                                                      selectedSupervisorIds,
+                                                  supervisorNames: _supervisors
+                                                      .where(
+                                                        (s) =>
+                                                            selectedSupervisorIds
+                                                                .contains(
+                                                                  s.userId,
+                                                                ),
+                                                      )
+                                                      .map((s) => s.name)
+                                                      .toList(),
+                                                  workerIds: selectedWorkerIds,
+                                                  workerNames: _workers
+                                                      .where(
+                                                        (w) => selectedWorkerIds
+                                                            .contains(w.userId),
+                                                      )
+                                                      .map((w) => w.name)
+                                                      .toList(),
+                                                  notes:
+                                                      notesController
+                                                          .text
+                                                          .isEmpty
+                                                      ? null
+                                                      : notesController.text,
+                                                  createdAt: DateTime.now(),
+                                                ),
+                                              );
+                                            }
+                                          }
+
                                           Navigator.pop(context, true);
                                           ScaffoldMessenger.of(
                                             context,
@@ -725,6 +905,47 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Future<String?> _showSaveTemplateDialog() async {
+    final templateNameController = TextEditingController();
+
+    return await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save as Template'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Give this template a name:'),
+            const SizedBox(height: AppStyles.space4),
+            TextField(
+              controller: templateNameController,
+              decoration: const InputDecoration(
+                labelText: 'Template Name',
+                hintText: 'e.g., Standard Activation Batch',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (templateNameController.text.isNotEmpty) {
+                Navigator.pop(context, templateNameController.text);
+              }
+            },
+            child: const Text('Save Template'),
+          ),
+        ],
       ),
     );
   }
@@ -1005,12 +1226,27 @@ class _ProductionPlanningScreenState extends State<ProductionPlanningScreen> {
                 ],
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showBatchDialog(),
-        icon: const Icon(Icons.add),
-        label: const Text('Create Batch'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_templates.isNotEmpty)
+            FloatingActionButton(
+              onPressed: _showTemplatesDialog,
+              backgroundColor: AppColors.info,
+              foregroundColor: Colors.white,
+              heroTag: 'template_btn',
+              child: const Icon(Icons.bookmark),
+            ),
+          if (_templates.isNotEmpty) const SizedBox(height: AppStyles.space2),
+          FloatingActionButton.extended(
+            onPressed: () => _showBatchDialog(),
+            icon: const Icon(Icons.add),
+            label: const Text('Create Batch'),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            heroTag: 'create_btn',
+          ),
+        ],
       ),
     );
   }

@@ -20,9 +20,11 @@ class MaterialUsageScreen extends StatefulWidget {
 class _MaterialUsageScreenState extends State<MaterialUsageScreen> {
   final InventoryService _inventoryService = InventoryService();
   List<MaterialWithdrawal> _withdrawals = [];
+  List<MaterialWithdrawal> _selectedWithdrawals = [];
   List<InventoryModel> _inventory = [];
   bool _isLoading = true;
   String _filterStatus = 'pending';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -57,9 +59,83 @@ class _MaterialUsageScreenState extends State<MaterialUsageScreen> {
   }
 
   List<MaterialWithdrawal> get _filteredWithdrawals {
-    return _withdrawals
+    var filtered = _withdrawals
         .where((w) => w.status.toLowerCase() == _filterStatus)
         .toList();
+
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((w) {
+        return w.productName.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            w.requestedByName.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            w.purpose.toLowerCase().contains(_searchQuery.toLowerCase());
+      }).toList();
+    }
+
+    return filtered;
+  }
+
+  Future<void> _handleBulkApprove() async {
+    final currentUser = await AuthService.getCurrentUser();
+    if (currentUser == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bulk Approve'),
+        content: Text(
+          'Approve ${_selectedWithdrawals.length} material withdrawal${_selectedWithdrawals.length > 1 ? 's' : ''}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('Approve All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      int successCount = 0;
+      int failedCount = 0;
+
+      for (var withdrawal in _selectedWithdrawals) {
+        try {
+          if (withdrawal.withdrawalId != null) {
+            await MaterialWithdrawalService.approveWithdrawal(
+              withdrawal.withdrawalId!,
+              currentUser.userId,
+            );
+            successCount++;
+          }
+        } catch (e) {
+          failedCount++;
+        }
+      }
+
+      setState(() => _selectedWithdrawals.clear());
+      _loadData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Approved $successCount request${successCount > 1 ? 's' : ''}' +
+                  (failedCount > 0 ? ', $failedCount failed' : ''),
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _approveWithdrawal(MaterialWithdrawal withdrawal) async {
@@ -576,9 +652,44 @@ class _MaterialUsageScreenState extends State<MaterialUsageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pendingWithdrawals = _selectedWithdrawals
+        .where((w) => w.status == 'pending')
+        .toList();
+
     return Scaffold(
       body: Column(
         children: [
+          // Search Bar
+          Container(
+            padding: const EdgeInsets.all(AppStyles.space4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: AppColors.gray200)),
+            ),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search by product, requester, or purpose...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppStyles.radiusLg),
+                ),
+                filled: true,
+                fillColor: AppColors.gray50,
+              ),
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+              },
+            ),
+          ),
+
           // Filter Bar
           Container(
             padding: const EdgeInsets.all(AppStyles.space4),
@@ -609,6 +720,36 @@ class _MaterialUsageScreenState extends State<MaterialUsageScreen> {
             ),
           ),
 
+          // Bulk Operations (only for pending)
+          if (_selectedWithdrawals.isNotEmpty && _filterStatus == 'pending')
+            Padding(
+              padding: const EdgeInsets.all(AppStyles.space4),
+              child: BulkOperationsWidget(
+                selectedCount: pendingWithdrawals.length,
+                onSelectAll: () {
+                  setState(() {
+                    _selectedWithdrawals = _filteredWithdrawals
+                        .where((w) => w.status == 'pending')
+                        .toList();
+                  });
+                },
+                onDeselectAll: () {
+                  setState(() => _selectedWithdrawals.clear());
+                },
+                customActions: [
+                  AppButton(
+                    text: 'Approve Selected',
+                    onPressed: pendingWithdrawals.isNotEmpty
+                        ? _handleBulkApprove
+                        : null,
+                    icon: Icons.check_circle,
+                    variant: ButtonVariant.outline,
+                    size: ButtonSize.sm,
+                  ),
+                ],
+              ),
+            ),
+
           // Content
           Expanded(
             child: _isLoading
@@ -635,11 +776,37 @@ class _MaterialUsageScreenState extends State<MaterialUsageScreen> {
                       itemCount: _filteredWithdrawals.length,
                       itemBuilder: (context, index) {
                         final withdrawal = _filteredWithdrawals[index];
+                        final isSelected = _selectedWithdrawals.contains(
+                          withdrawal,
+                        );
+                        final canSelect = withdrawal.status == 'pending';
+
+                        if (!canSelect) {
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppStyles.space3,
+                            ),
+                            child: _buildWithdrawalCard(withdrawal),
+                          );
+                        }
+
                         return Padding(
                           padding: const EdgeInsets.only(
                             bottom: AppStyles.space3,
                           ),
-                          child: _buildWithdrawalCard(withdrawal),
+                          child: SelectableListTile(
+                            isSelected: isSelected,
+                            onChanged: (selected) {
+                              setState(() {
+                                if (selected == true) {
+                                  _selectedWithdrawals.add(withdrawal);
+                                } else {
+                                  _selectedWithdrawals.remove(withdrawal);
+                                }
+                              });
+                            },
+                            child: _buildWithdrawalCard(withdrawal),
+                          ),
                         );
                       },
                     ),
